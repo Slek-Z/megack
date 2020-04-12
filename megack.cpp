@@ -2,6 +2,7 @@
 // Copyright (C) 2018 Slek.
 
 //STL
+#include <atomic>
 #include <iostream>
 #include <string>
 
@@ -10,10 +11,12 @@
 
 using namespace mega;
 
-bool finished;
-MegaClient* client;
+enum class STATUS {BUSY, OK, ABORTED} status;
 
-string errorstring(error e) {
+MegaClient* client;
+std::string curent_line;
+
+std::string errorstring(error e) {
     switch (e) {
         case API_OK:
             return "No error";
@@ -70,13 +73,17 @@ string errorstring(error e) {
 
 struct CheckApp : public MegaApp {
     virtual void checkfile_result(handle, error e) override {
-        cout << "Link check failed: " << errorstring(e) << endl;
-        finished = true;
+        std::cout << "Link check failed: " << errorstring(e) << std::endl;
+        status = STATUS::ABORTED;
     }
     virtual void checkfile_result(handle, error e, byte*, m_off_t, m_time_t, m_time_t, string* filename, string*, string*) override {
-        if (e) cout << "Not available: " << errorstring(e) << endl;
-        else cout << *filename << endl;
-        finished = true;
+        if (e) {
+            std::cout << "Not available: " << errorstring(e) << std::endl;
+            status = STATUS::ABORTED;
+        } else {
+            std::cout << "OK: " << *filename << std::endl;
+            status = STATUS::OK;
+        }
     }
 };
 
@@ -96,19 +103,23 @@ int main () {
                             "megack");
 
     // main loop
-    for (string line; getline(cin, line); ) {
-        finished = false;
+    for (std::string line; std::getline(std::cin, line); ) {
+        status = STATUS::BUSY;
 
         if (error e = client->openfilelink(line.c_str(), 0)) {
-            cout << "Link check failed: " << errorstring(e) << endl;
+            std::cout << "Link check failed: " << errorstring(e) << std::endl;
+            std::cout << " in " << line << std::endl;
             continue;
         }
 
         // polling loop
-        while (!finished) {
-            client->exec();
+        while (status == STATUS::BUSY) {
             client->wait();
+            client->exec();
         }
+        
+        if (status == STATUS::ABORTED)
+          std::cout << " in " << line << std::endl;
     }
 
     return 0;

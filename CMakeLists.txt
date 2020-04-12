@@ -3,7 +3,7 @@ project(megack CXX)
 cmake_minimum_required(VERSION 2.8)
 
 ## Set CXX optimization flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wpedantic -Wall -Wextra -mtune=native -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wpedantic -Wall -Wextra")
 
 ## Set build type to Release by default
 if(NOT CMAKE_BUILD_TYPE)
